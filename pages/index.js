@@ -232,27 +232,53 @@ export default function Home() {
         <div key={i} className={`calendar-cell ${isOtherMonth ? 'other-month' : ''}`}>
           <div className="date-number">{date.getDate()}</div>
           <div className="events-list">
-            {dayEvents.map((ev, idx) => (
-              <div key={idx} className="event-item" title={`${ev.name || ev.symbol} - ${ev.time}`}>
-                <img 
-                  src={`https://logo.clearbit.com/${ev.domain}`}
-                  alt={ev.symbol}
-                  className="company-logo"
-                  onError={(e) => {
-                    // Fallback to a colored circle with initials
-                    e.target.style.display = 'none';
-                    const fallback = e.target.nextSibling;
-                    if (fallback && fallback.classList.contains('logo-fallback')) {
-                      fallback.style.display = 'flex';
-                    }
-                  }}
-                />
-                <div className="logo-fallback" style={{display: 'none'}}>
-                  {ev.symbol.substring(0, 2)}
+            {dayEvents.map((ev, idx) => {
+              // Generate a consistent color for each ticker
+              const colors = [
+                ['#667eea', '#764ba2'],
+                ['#f093fb', '#f5576c'],
+                ['#4facfe', '#00f2fe'],
+                ['#43e97b', '#38f9d7'],
+                ['#fa709a', '#fee140'],
+                ['#30cfd0', '#330867']
+              ];
+              const colorIndex = ev.symbol.charCodeAt(0) % colors.length;
+              const [color1, color2] = colors[colorIndex];
+              
+              return (
+                <div key={idx} className="event-item" title={`${ev.name || ev.symbol} - ${ev.time}`}>
+                  <img 
+                    src={`https://logo.clearbit.com/${ev.domain}`}
+                    alt={ev.symbol}
+                    className="company-logo"
+                    onError={(e) => {
+                      // Try alternative logo source
+                      if (!e.target.dataset.triedBackup) {
+                        e.target.dataset.triedBackup = 'true';
+                        e.target.src = `https://img.logo.dev/${ev.domain}?token=pk_X-1ZO13CRLuFVeI5G3F_EA`;
+                      } else {
+                        // Show fallback
+                        e.target.style.display = 'none';
+                        const fallback = e.target.nextSibling;
+                        if (fallback && fallback.classList.contains('logo-fallback')) {
+                          fallback.style.display = 'flex';
+                        }
+                      }
+                    }}
+                  />
+                  <div 
+                    className="logo-fallback" 
+                    style={{
+                      display: 'none',
+                      background: `linear-gradient(135deg, ${color1}, ${color2})`
+                    }}
+                  >
+                    {ev.symbol.substring(0, 2)}
+                  </div>
+                  <span className="ticker-name">{ev.symbol}</span>
                 </div>
-                <span className="ticker-name">{ev.symbol}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       );
