@@ -248,14 +248,14 @@ export default function Home() {
               return (
                 <div key={idx} className="event-item" title={`${ev.name || ev.symbol} - ${ev.time}`}>
                   <img 
-                    src={`https://logo.clearbit.com/${ev.domain}`}
+                    src={`https://img.logo.dev/${ev.domain}?token=pk_X-1ZO13CRLuFVeI5G3F_EA`}
                     alt={ev.symbol}
                     className="company-logo"
                     onError={(e) => {
-                      // Try alternative logo source
+                      // Try Favicon service as backup
                       if (!e.target.dataset.triedBackup) {
                         e.target.dataset.triedBackup = 'true';
-                        e.target.src = `https://img.logo.dev/${ev.domain}?token=pk_X-1ZO13CRLuFVeI5G3F_EA`;
+                        e.target.src = `https://www.google.com/s2/favicons?domain=${ev.domain}&sz=128`;
                       } else {
                         // Show fallback
                         e.target.style.display = 'none';
