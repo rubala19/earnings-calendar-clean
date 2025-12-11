@@ -1,5 +1,114 @@
 import { useEffect, useState } from 'react';
 
+// Comprehensive ticker to domain mapping
+const TICKER_DOMAINS = {
+  // Tech Giants
+  'AAPL': 'apple.com',
+  'MSFT': 'microsoft.com',
+  'GOOGL': 'google.com',
+  'GOOG': 'google.com',
+  'AMZN': 'amazon.com',
+  'META': 'meta.com',
+  'TSLA': 'tesla.com',
+  'NVDA': 'nvidia.com',
+  'AMD': 'amd.com',
+  'INTC': 'intel.com',
+  'ORCL': 'oracle.com',
+  'CRM': 'salesforce.com',
+  'ADBE': 'adobe.com',
+  'NFLX': 'netflix.com',
+  'AVGO': 'broadcom.com',
+  
+  // Social/Media
+  'SNAP': 'snap.com',
+  'PINS': 'pinterest.com',
+  'SPOT': 'spotify.com',
+  'RBLX': 'roblox.com',
+  
+  // Finance
+  'V': 'visa.com',
+  'MA': 'mastercard.com',
+  'PYPL': 'paypal.com',
+  'SQ': 'squareup.com',
+  'JPM': 'jpmorganchase.com',
+  'BAC': 'bankofamerica.com',
+  'WFC': 'wellsfargo.com',
+  'GS': 'goldmansachs.com',
+  'MS': 'morganstanley.com',
+  'AXP': 'americanexpress.com',
+  
+  // Retail
+  'WMT': 'walmart.com',
+  'TGT': 'target.com',
+  'HD': 'homedepot.com',
+  'LOW': 'lowes.com',
+  'COST': 'costco.com',
+  'NKE': 'nike.com',
+  'SBUX': 'starbucks.com',
+  'MCD': 'mcdonalds.com',
+  
+  // Semiconductors
+  'TSM': 'tsmc.com',
+  'ASML': 'asml.com',
+  'QCOM': 'qualcomm.com',
+  'TXN': 'ti.com',
+  'AMAT': 'appliedmaterials.com',
+  'LRCX': 'lamresearch.com',
+  'KLAC': 'kla.com',
+  'MRVL': 'marvell.com',
+  
+  // Cloud/SaaS
+  'SNOW': 'snowflake.com',
+  'DDOG': 'datadoghq.com',
+  'NET': 'cloudflare.com',
+  'TEAM': 'atlassian.com',
+  'NOW': 'servicenow.com',
+  'WDAY': 'workday.com',
+  'ZM': 'zoom.us',
+  'OKTA': 'okta.com',
+  'CRWD': 'crowdstrike.com',
+  'PANW': 'paloaltonetworks.com',
+  
+  // Auto
+  'F': 'ford.com',
+  'GM': 'gm.com',
+  'TM': 'toyota.com',
+  
+  // Healthcare/Pharma
+  'JNJ': 'jnj.com',
+  'UNH': 'unitedhealthgroup.com',
+  'PFE': 'pfizer.com',
+  'ABBV': 'abbvie.com',
+  'TMO': 'thermofisher.com',
+  'ABT': 'abbott.com',
+  'LLY': 'lilly.com',
+  'MRK': 'merck.com',
+  
+  // Telecom
+  'T': 'att.com',
+  'VZ': 'verizon.com',
+  'TMUS': 't-mobile.com',
+  
+  // Energy
+  'XOM': 'exxonmobil.com',
+  'CVX': 'chevron.com',
+  
+  // Industrial
+  'BA': 'boeing.com',
+  'CAT': 'caterpillar.com',
+  'GE': 'ge.com',
+  'HON': 'honeywell.com',
+  '3M': '3m.com',
+  'MMM': '3m.com',
+  
+  // Consumer
+  'PG': 'pg.com',
+  'KO': 'coca-cola.com',
+  'PEP': 'pepsico.com',
+  'DIS': 'disney.com',
+  'CMCSA': 'comcast.com'
+};
+
 export default function Home() {
   const [events, setEvents] = useState([]);
   const [viewDate, setViewDate] = useState(new Date());
@@ -51,13 +160,13 @@ export default function Home() {
         return;
       }
 
-      // Add event
+      // Add event with proper domain
       const eventData = {
         symbol: ticker,
         name: data.name || ticker,
         date: data.date,
         time: data.time || 'TBD',
-        domain: guessDomain(ticker)
+        domain: getDomainForTicker(ticker)
       };
 
       const postRes = await fetch('/api/events', {
@@ -85,17 +194,8 @@ export default function Home() {
     }
   }
 
-  function guessDomain(ticker) {
-    const map = {
-      'AAPL': 'apple.com',
-      'NVDA': 'nvidia.com',
-      'AMD': 'amd.com',
-      'TSM': 'tsmc.com',
-      'AVGO': 'broadcom.com',
-      'SNOW': 'snowflake.com',
-      'PYPL': 'paypal.com'
-    };
-    return map[ticker] || `${ticker.toLowerCase()}.com`;
+  function getDomainForTicker(ticker) {
+    return TICKER_DOMAINS[ticker] || `${ticker.toLowerCase()}.com`;
   }
 
   function showToast(message, type = 'info') {
@@ -133,13 +233,24 @@ export default function Home() {
           <div className="date-number">{date.getDate()}</div>
           <div className="events-list">
             {dayEvents.map((ev, idx) => (
-              <div key={idx} className="event-item" title={`${ev.name} - ${ev.time}`}>
+              <div key={idx} className="event-item" title={`${ev.name || ev.symbol} - ${ev.time}`}>
                 <img 
                   src={`https://logo.clearbit.com/${ev.domain}`}
                   alt={ev.symbol}
-                  onError={(e) => e.target.style.display = 'none'}
+                  className="company-logo"
+                  onError={(e) => {
+                    // Fallback to a colored circle with initials
+                    e.target.style.display = 'none';
+                    const fallback = e.target.nextSibling;
+                    if (fallback && fallback.classList.contains('logo-fallback')) {
+                      fallback.style.display = 'flex';
+                    }
+                  }}
                 />
-                <span>{ev.symbol}</span>
+                <div className="logo-fallback" style={{display: 'none'}}>
+                  {ev.symbol.substring(0, 2)}
+                </div>
+                <span className="ticker-name">{ev.symbol}</span>
               </div>
             ))}
           </div>
