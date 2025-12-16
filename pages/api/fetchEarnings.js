@@ -1,6 +1,111 @@
 const DEBUG = (process.env.DEBUG_LOGS === 'true');
 function dbg(...args) { if (DEBUG) console.log(...args); }
 
+// Financial Modeling Prep - More reliable than Alpha Vantage
+async function fetchFromFMP(ticker) {
+  const API_KEY = process.env.FMP_API_KEY;
+  if (!API_KEY) {
+    dbg('[fetchEarnings] No FMP_API_KEY, skipping');
+    return null;
+  }
+
+  dbg('[fetchEarnings] FMP:', ticker);
+  const url = `https://financialmodelingprep.com/api/v3/earning_calendar?symbol=${ticker}&apikey=${API_KEY}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    
+    if (Array.isArray(data) && data.length > 0) {
+      const earnings = data[0]; // Get next earnings
+      return {
+        symbol: earnings.symbol,
+        name: ticker,
+        date: earnings.date,
+        time: earnings.time || 'TBD',
+        eps: earnings.eps,
+        epsEstimated: earnings.epsEstimated,
+        source: 'FMP'
+      };
+    }
+
+    return null;
+  } catch (err) {
+    dbg('[fetchEarnings] FMP error:', err.message);
+    return null;
+  }
+}
+
+// Yahoo Finance (scraping - free but unofficial)
+async function fetchFromYahooFinance(ticker) {
+  dbg('[fetchEarnings] Yahoo Finance:', ticker);
+  const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=calendarEvents`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const earnings = data?.quoteSummary?.result?.[0]?.calendarEvents?.earnings;
+    
+    if (earnings?.earningsDate?.[0]) {
+      const timestamp = earnings.earningsDate[0].raw;
+      const date = new Date(timestamp * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+
+      return {
+        symbol: ticker,
+        name: ticker,
+        date: dateStr,
+        time: 'TBD',
+        source: 'Yahoo'
+      };
+    }
+
+    return null;
+  } catch (err) {
+    dbg('[fetchEarnings] Yahoo error:', err.message);
+    return null;
+  }
+}
+
+// Polygon.io - Good free tier
+async function fetchFromPolygon(ticker) {
+  const API_KEY = process.env.POLYGON_API_KEY;
+  if (!API_KEY) {
+    dbg('[fetchEarnings] No POLYGON_API_KEY, skipping');
+    return null;
+  }
+
+  dbg('[fetchEarnings] Polygon:', ticker);
+  const url = `https://api.polygon.io/vX/reference/financials?ticker=${ticker}&limit=1&apiKey=${API_KEY}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    
+    if (data?.results?.[0]) {
+      const result = data.results[0];
+      return {
+        symbol: ticker,
+        name: ticker,
+        date: result.filing_date || result.end_date,
+        time: 'TBD',
+        source: 'Polygon'
+      };
+    }
+
+    return null;
+  } catch (err) {
+    dbg('[fetchEarnings] Polygon error:', err.message);
+    return null;
+  }
+}
+
 async function fetchFromAlphaVantage(ticker) {
   const API_KEY = process.env.ALPHAVANTAGE_KEY;
   if (!API_KEY) {
@@ -17,7 +122,6 @@ async function fetchFromAlphaVantage(ticker) {
 
   const text = await response.text();
   
-  // Check for errors
   if (text.includes('Error Message') || text.includes('Invalid API call')) {
     throw new Error('Alpha Vantage API error');
   }
@@ -31,7 +135,6 @@ async function fetchFromAlphaVantage(ticker) {
     return null;
   }
 
-  // Parse CSV
   const [symbol, name, reportDate] = lines[1].split(',');
   
   if (!reportDate || reportDate === 'None') {
@@ -94,22 +197,30 @@ export default async function handler(req, res) {
   dbg('[fetchEarnings] Processing:', ticker);
 
   try {
-    // Try MarketData first
-    let data = await fetchFromMarketData(ticker);
-    if (data) {
-      dbg('[fetchEarnings] Success: MarketData');
-      return res.status(200).json(data);
+    // Try sources in order of reliability
+    const sources = [
+      fetchFromFMP,
+      fetchFromYahooFinance,
+      fetchFromPolygon,
+      fetchFromMarketData,
+      fetchFromAlphaVantage
+    ];
+
+    for (const fetchFn of sources) {
+      try {
+        const data = await fetchFn(ticker);
+        if (data && data.date) {
+          dbg('[fetchEarnings] Success:', data.source);
+          return res.status(200).json(data);
+        }
+      } catch (err) {
+        dbg('[fetchEarnings] Source failed:', err.message);
+        continue;
+      }
     }
 
-    // Fallback to Alpha Vantage
-    data = await fetchFromAlphaVantage(ticker);
-    if (data) {
-      dbg('[fetchEarnings] Success: Alpha Vantage');
-      return res.status(200).json(data);
-    }
-
-    // No data found
-    dbg('[fetchEarnings] No data found');
+    // No data found from any source
+    dbg('[fetchEarnings] No data found from any source');
     return res.status(404).json({ 
       error: `No earnings data found for ${ticker}` 
     });
