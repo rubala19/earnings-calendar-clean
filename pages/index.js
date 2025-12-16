@@ -345,22 +345,6 @@ export default function Home() {
   return (
     <div className="container">
       <header className="header">
-
-    <button onClick={() => {
-  setSelectedTicker('TEST');
-  setNews([{
-    headline: 'Test headline',
-    summary: 'Test summary',
-    source: 'Test',
-    url: '#',
-    publishedAt: new Date().toISOString(),
-    sentiment: 'positive',
-    sentimentScore: 0.5
-  }]);
-}}>
-  Test Modal
-</button>
-    
         <div>
           <h1>Earnings Calendar</h1>
           <p className="subtitle">Track upcoming earnings reports</p>
