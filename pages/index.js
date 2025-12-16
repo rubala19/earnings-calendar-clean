@@ -2,111 +2,33 @@ import { useEffect, useState } from 'react';
 
 // Comprehensive ticker to domain mapping
 const TICKER_DOMAINS = {
-  // Tech Giants
-  'AAPL': 'apple.com',
-  'MSFT': 'microsoft.com',
-  'GOOGL': 'google.com',
-  'GOOG': 'google.com',
-  'AMZN': 'amazon.com',
-  'META': 'meta.com',
-  'TSLA': 'tesla.com',
-  'NVDA': 'nvidia.com',
-  'AMD': 'amd.com',
-  'INTC': 'intel.com',
-  'ORCL': 'oracle.com',
-  'CRM': 'salesforce.com',
-  'ADBE': 'adobe.com',
-  'NFLX': 'netflix.com',
-  'AVGO': 'broadcom.com',
-  
-  // Social/Media
-  'SNAP': 'snap.com',
-  'PINS': 'pinterest.com',
-  'SPOT': 'spotify.com',
-  'RBLX': 'roblox.com',
-  
-  // Finance
-  'V': 'visa.com',
-  'MA': 'mastercard.com',
-  'PYPL': 'paypal.com',
-  'SQ': 'squareup.com',
-  'JPM': 'jpmorganchase.com',
-  'BAC': 'bankofamerica.com',
-  'WFC': 'wellsfargo.com',
-  'GS': 'goldmansachs.com',
-  'MS': 'morganstanley.com',
-  'AXP': 'americanexpress.com',
-  
-  // Retail
-  'WMT': 'walmart.com',
-  'TGT': 'target.com',
-  'HD': 'homedepot.com',
-  'LOW': 'lowes.com',
-  'COST': 'costco.com',
-  'NKE': 'nike.com',
-  'SBUX': 'starbucks.com',
-  'MCD': 'mcdonalds.com',
-  
-  // Semiconductors
-  'TSM': 'tsmc.com',
-  'ASML': 'asml.com',
-  'QCOM': 'qualcomm.com',
-  'TXN': 'ti.com',
-  'AMAT': 'appliedmaterials.com',
-  'LRCX': 'lamresearch.com',
-  'KLAC': 'kla.com',
-  'MRVL': 'marvell.com',
-  
-  // Cloud/SaaS
-  'SNOW': 'snowflake.com',
-  'DDOG': 'datadoghq.com',
-  'NET': 'cloudflare.com',
-  'TEAM': 'atlassian.com',
-  'NOW': 'servicenow.com',
-  'WDAY': 'workday.com',
-  'ZM': 'zoom.us',
-  'OKTA': 'okta.com',
-  'CRWD': 'crowdstrike.com',
-  'PANW': 'paloaltonetworks.com',
-  
-  // Auto
-  'F': 'ford.com',
-  'GM': 'gm.com',
-  'TM': 'toyota.com',
-  
-  // Healthcare/Pharma
-  'JNJ': 'jnj.com',
-  'UNH': 'unitedhealthgroup.com',
-  'PFE': 'pfizer.com',
-  'ABBV': 'abbvie.com',
-  'TMO': 'thermofisher.com',
-  'ABT': 'abbott.com',
-  'LLY': 'lilly.com',
-  'MRK': 'merck.com',
-  
-  // Telecom
-  'T': 'att.com',
-  'VZ': 'verizon.com',
-  'TMUS': 't-mobile.com',
-  
-  // Energy
-  'XOM': 'exxonmobil.com',
-  'CVX': 'chevron.com',
-  
-  // Industrial
-  'BA': 'boeing.com',
-  'CAT': 'caterpillar.com',
-  'GE': 'ge.com',
-  'HON': 'honeywell.com',
-  '3M': '3m.com',
-  'MMM': '3m.com',
-  
-  // Consumer
-  'PG': 'pg.com',
-  'KO': 'coca-cola.com',
-  'PEP': 'pepsico.com',
-  'DIS': 'disney.com',
-  'CMCSA': 'comcast.com'
+  'AAPL': 'apple.com', 'MSFT': 'microsoft.com', 'GOOGL': 'google.com',
+  'GOOG': 'google.com', 'AMZN': 'amazon.com', 'META': 'meta.com',
+  'TSLA': 'tesla.com', 'NVDA': 'nvidia.com', 'AMD': 'amd.com',
+  'INTC': 'intel.com', 'ORCL': 'oracle.com', 'CRM': 'salesforce.com',
+  'ADBE': 'adobe.com', 'NFLX': 'netflix.com', 'AVGO': 'broadcom.com',
+  'SNAP': 'snap.com', 'PINS': 'pinterest.com', 'SPOT': 'spotify.com',
+  'RBLX': 'roblox.com', 'V': 'visa.com', 'MA': 'mastercard.com',
+  'PYPL': 'paypal.com', 'SQ': 'squareup.com', 'JPM': 'jpmorganchase.com',
+  'BAC': 'bankofamerica.com', 'WFC': 'wellsfargo.com', 'GS': 'goldmansachs.com',
+  'MS': 'morganstanley.com', 'AXP': 'americanexpress.com', 'WMT': 'walmart.com',
+  'TGT': 'target.com', 'HD': 'homedepot.com', 'LOW': 'lowes.com',
+  'COST': 'costco.com', 'NKE': 'nike.com', 'SBUX': 'starbucks.com',
+  'MCD': 'mcdonalds.com', 'TSM': 'tsmc.com', 'ASML': 'asml.com',
+  'QCOM': 'qualcomm.com', 'TXN': 'ti.com', 'AMAT': 'appliedmaterials.com',
+  'LRCX': 'lamresearch.com', 'KLAC': 'kla.com', 'MRVL': 'marvell.com',
+  'SNOW': 'snowflake.com', 'DDOG': 'datadoghq.com', 'NET': 'cloudflare.com',
+  'TEAM': 'atlassian.com', 'NOW': 'servicenow.com', 'WDAY': 'workday.com',
+  'ZM': 'zoom.us', 'OKTA': 'okta.com', 'CRWD': 'crowdstrike.com',
+  'PANW': 'paloaltonetworks.com', 'F': 'ford.com', 'GM': 'gm.com',
+  'TM': 'toyota.com', 'JNJ': 'jnj.com', 'UNH': 'unitedhealthgroup.com',
+  'PFE': 'pfizer.com', 'ABBV': 'abbvie.com', 'TMO': 'thermofisher.com',
+  'ABT': 'abbott.com', 'LLY': 'lilly.com', 'MRK': 'merck.com',
+  'T': 'att.com', 'VZ': 'verizon.com', 'TMUS': 't-mobile.com',
+  'XOM': 'exxonmobil.com', 'CVX': 'chevron.com', 'BA': 'boeing.com',
+  'CAT': 'caterpillar.com', 'GE': 'ge.com', 'HON': 'honeywell.com',
+  '3M': '3m.com', 'MMM': '3m.com', 'PG': 'pg.com', 'KO': 'coca-cola.com',
+  'PEP': 'pepsico.com', 'DIS': 'disney.com', 'CMCSA': 'comcast.com'
 };
 
 export default function Home() {
@@ -163,7 +85,6 @@ export default function Home() {
         return;
       }
 
-      // Add event with proper domain
       const eventData = {
         symbol: ticker,
         name: data.name || ticker,
@@ -202,12 +123,14 @@ export default function Home() {
   }
 
   async function fetchNews(ticker) {
+    console.log('fetchNews called for:', ticker);
     setLoadingNews(true);
     setSelectedTicker(ticker);
     try {
       const res = await fetch(`/api/news?symbol=${ticker}`);
       const data = await res.json();
       setNews(data.news || []);
+      console.log('News fetched:', data.news?.length || 0);
     } catch (err) {
       console.error('News fetch error:', err);
       setNews([]);
@@ -237,24 +160,28 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  function handleEventClick(e, symbol) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Event clicked:', symbol);
+    fetchNews(symbol);
+  }
+
   function renderCalendar() {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - startDate.getDay());
 
     const cells = [];
     const eventMap = {};
     
-    // Build event map
     events.forEach(ev => {
       if (!eventMap[ev.date]) eventMap[ev.date] = [];
       eventMap[ev.date].push(ev);
     });
 
-    // Generate 42 cells (6 weeks)
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
@@ -267,34 +194,33 @@ export default function Home() {
           <div className="date-number">{date.getDate()}</div>
           <div className="events-list">
             {dayEvents.map((ev, idx) => {
-              // Generate a consistent color for each ticker
               const colors = [
-                ['#667eea', '#764ba2'],
-                ['#f093fb', '#f5576c'],
-                ['#4facfe', '#00f2fe'],
-                ['#43e97b', '#38f9d7'],
-                ['#fa709a', '#fee140'],
-                ['#30cfd0', '#330867']
+                ['#667eea', '#764ba2'], ['#f093fb', '#f5576c'],
+                ['#4facfe', '#00f2fe'], ['#43e97b', '#38f9d7'],
+                ['#fa709a', '#fee140'], ['#30cfd0', '#330867']
               ];
               const colorIndex = ev.symbol.charCodeAt(0) % colors.length;
               const [color1, color2] = colors[colorIndex];
               
               return (
-                <div key={idx} className="event-item" title={`${ev.name || ev.symbol} - ${ev.time}`}>
+                <div 
+                  key={idx} 
+                  className="event-item" 
+                  title={`Click for news: ${ev.name || ev.symbol} - ${ev.time}`}
+                  onClick={(e) => handleEventClick(e, ev.symbol)}
+                >
                   <img 
                     src={`https://img.logo.dev/${ev.domain}?token=pk_X-1ZO13CRLuFVeI5G3F_EA`}
                     alt={ev.symbol}
                     className="company-logo"
                     onError={(e) => {
-                      // Try Favicon service as backup
                       if (!e.target.dataset.triedBackup) {
                         e.target.dataset.triedBackup = 'true';
                         e.target.src = `https://www.google.com/s2/favicons?domain=${ev.domain}&sz=128`;
                       } else {
-                        // Show fallback
                         e.target.style.display = 'none';
                         const fallback = e.target.nextSibling;
-                        if (fallback && fallback.classList.contains('logo-fallback')) {
+                        if (fallback?.classList.contains('logo-fallback')) {
                           fallback.style.display = 'flex';
                         }
                       }
