@@ -199,11 +199,18 @@ body {
   color: #2d3748;
   cursor: pointer;
   transition: all 0.2s;
+  user-select: none;
 }
 
 .event-item:hover {
-  background: #e2e8f0;
+  background: #667eea;
+  color: white;
   transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.event-item:active {
+  transform: translateX(0) scale(0.98);
 }
 
 .company-logo {
