@@ -1,38 +1,62 @@
 const DEBUG = (process.env.DEBUG_LOGS === 'true');
 function dbg(...args) { if (DEBUG) console.log(...args); }
 
-// Simple sentiment analysis based on keywords
+// Enhanced sentiment analysis with more keywords and patterns
 function analyzeSentiment(text) {
   const lowerText = text.toLowerCase();
   
   const positiveWords = [
     'profit', 'gain', 'growth', 'surge', 'jump', 'rally', 'beat', 'exceed',
     'strong', 'boost', 'rise', 'climb', 'soar', 'bullish', 'upgrade', 'positive',
-    'record', 'high', 'success', 'outperform', 'innovative', 'breakthrough'
+    'record', 'high', 'success', 'outperform', 'innovative', 'breakthrough',
+    'increase', 'up', 'better', 'improved', 'optimistic', 'confident', 'advance',
+    'winning', 'milestone', 'achieve', 'expand', 'revenue', 'earnings beat'
   ];
   
   const negativeWords = [
     'loss', 'fall', 'drop', 'decline', 'plunge', 'miss', 'weak', 'worry',
     'concern', 'down', 'bear', 'bearish', 'cut', 'downgrade', 'negative',
-    'risk', 'fail', 'worst', 'lawsuit', 'investigation', 'warning'
+    'risk', 'fail', 'worst', 'lawsuit', 'investigation', 'warning',
+    'decrease', 'lower', 'disappointing', 'missed', 'below', 'slump', 'crash',
+    'trouble', 'problem', 'crisis', 'layoff', 'bankruptcy', 'debt', 'losses'
   ];
   
   let score = 0;
+  let positiveCount = 0;
+  let negativeCount = 0;
+  
   positiveWords.forEach(word => {
-    if (lowerText.includes(word)) score += 1;
+    const regex = new RegExp('\\b' + word + '\\b', 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      positiveCount += matches.length;
+      score += matches.length;
+    }
   });
+  
   negativeWords.forEach(word => {
-    if (lowerText.includes(word)) score -= 1;
+    const regex = new RegExp('\\b' + word + '\\b', 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      negativeCount += matches.length;
+      score -= matches.length;
+    }
   });
+  
+  dbg('[sentiment]', { positiveCount, negativeCount, score });
   
   // Normalize to -1 to 1 scale
-  const normalizedScore = Math.max(-1, Math.min(1, score / 5));
+  const normalizedScore = Math.max(-1, Math.min(1, score / 3));
   
   let sentiment = 'neutral';
-  if (normalizedScore > 0.2) sentiment = 'positive';
-  else if (normalizedScore < -0.2) sentiment = 'negative';
+  if (normalizedScore > 0.15) sentiment = 'positive';
+  else if (normalizedScore < -0.15) sentiment = 'negative';
   
-  return { score: normalizedScore, sentiment };
+  return { 
+    score: normalizedScore, 
+    sentiment,
+    details: { positiveCount, negativeCount }
+  };
 }
 
 // Finnhub News API
