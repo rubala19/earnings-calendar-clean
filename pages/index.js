@@ -115,6 +115,9 @@ export default function Home() {
   const [tickerInput, setTickerInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [selectedTicker, setSelectedTicker] = useState(null);
+  const [news, setNews] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -196,6 +199,37 @@ export default function Home() {
 
   function getDomainForTicker(ticker) {
     return TICKER_DOMAINS[ticker] || `${ticker.toLowerCase()}.com`;
+  }
+
+  async function fetchNews(ticker) {
+    setLoadingNews(true);
+    setSelectedTicker(ticker);
+    try {
+      const res = await fetch(`/api/news?symbol=${ticker}`);
+      const data = await res.json();
+      setNews(data.news || []);
+    } catch (err) {
+      console.error('News fetch error:', err);
+      setNews([]);
+    } finally {
+      setLoadingNews(false);
+    }
+  }
+
+  function getSentimentColor(sentiment) {
+    switch (sentiment) {
+      case 'positive': return '#48bb78';
+      case 'negative': return '#f56565';
+      default: return '#718096';
+    }
+  }
+
+  function getSentimentEmoji(sentiment) {
+    switch (sentiment) {
+      case 'positive': return '📈';
+      case 'negative': return '📉';
+      default: return '➖';
+    }
   }
 
   function showToast(message, type = 'info') {
@@ -353,6 +387,48 @@ export default function Home() {
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           {toast.message}
+        </div>
+      )}
+
+      {selectedTicker && (
+        <div className="news-modal" onClick={() => setSelectedTicker(null)}>
+          <div className="news-content" onClick={(e) => e.stopPropagation()}>
+            <div className="news-header">
+              <h3>Latest News: {selectedTicker}</h3>
+              <button className="close-btn" onClick={() => setSelectedTicker(null)}>×</button>
+            </div>
+            
+            {loadingNews ? (
+              <div className="loading">Loading news...</div>
+            ) : news.length === 0 ? (
+              <div className="no-news">No recent news found</div>
+            ) : (
+              <div className="news-list">
+                {news.map((item, idx) => (
+                  <div key={idx} className="news-item">
+                    <div className="news-item-header">
+                      <span className="news-source">{item.source}</span>
+                      <span 
+                        className="sentiment-badge"
+                        style={{ backgroundColor: getSentimentColor(item.sentiment) }}
+                      >
+                        {getSentimentEmoji(item.sentiment)} {item.sentiment}
+                      </span>
+                    </div>
+                    <h4 className="news-headline">
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        {item.headline}
+                      </a>
+                    </h4>
+                    <p className="news-summary">{item.summary}</p>
+                    <div className="news-meta">
+                      {new Date(item.publishedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
