@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from 'next/router';
 
 // Comprehensive ticker to domain mapping
 const TICKER_DOMAINS = {
@@ -32,6 +34,8 @@ const TICKER_DOMAINS = {
 };
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [events, setEvents] = useState([]);
   const [viewDate, setViewDate] = useState(new Date());
   const [tickerInput, setTickerInput] = useState('');
@@ -42,8 +46,16 @@ export default function Home() {
   const [loadingNews, setLoadingNews] = useState(false);
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      loadEvents();
+    }
+  }, [status]);
 
   async function loadEvents() {
     try {
@@ -268,6 +280,19 @@ export default function Home() {
 
   const monthName = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
+  if (status === 'loading') {
+    return (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
   return (
     <div className="container">
       <header className="header">
@@ -275,10 +300,21 @@ export default function Home() {
           <h1>Earnings Calendar</h1>
           <p className="subtitle">Track upcoming earnings reports</p>
         </div>
-        <div className="controls">
-          <button onClick={prevMonth} className="nav-btn">←</button>
-          <button onClick={today} className="today-btn">Today</button>
-          <button onClick={nextMonth} className="nav-btn">→</button>
+        <div className="header-right">
+          <div className="user-info">
+            {session.user?.image && (
+              <img src={session.user.image} alt="User" className="user-avatar" />
+            )}
+            <span className="user-name">{session.user?.name || session.user?.email}</span>
+            <button onClick={() => signOut()} className="signout-btn">
+              Sign out
+            </button>
+          </div>
+          <div className="controls">
+            <button onClick={prevMonth} className="nav-btn">←</button>
+            <button onClick={today} className="today-btn">Today</button>
+            <button onClick={nextMonth} className="nav-btn">→</button>
+          </div>
         </div>
       </header>
 
