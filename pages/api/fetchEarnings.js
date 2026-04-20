@@ -83,92 +83,186 @@ function sevenDaysAgoUTC() {
 // Source: Financial Modeling Prep
 // Limit: 250 calls/day on free tier
 // Has BMO/AMC timing and EPS estimates
+//
+// FMP free tier supports /stable/earnings (v4 stable endpoint).
+// /v3/earning_calendar requires a paid plan on newer accounts.
+// We try the stable endpoint first, then fall back to v3.
 // ---------------------------------------------------------------------------
 async function fetchFromFMP(ticker) {
   const API_KEY = process.env.FMP_API_KEY;
   if (!API_KEY) { dbg('[fmp] No FMP_API_KEY'); return null; }
   if (isExhausted('fmp')) { dbg('[fmp] Daily limit reached'); return null; }
 
-  const url = `https://financialmodelingprep.com/api/v3/earning_calendar?symbol=${ticker}&apikey=${API_KEY}`;
   dbg('[fmp] Fetching:', ticker);
 
-  const response = await fetch(url);
-  recordCall('fmp');
+  // Try the stable endpoint first (free tier friendly)
+  // Then fall back to v3 which some older free accounts can still access
+  const endpoints = [
+    `https://financialmodelingprep.com/stable/earnings?symbol=${ticker}&apikey=${API_KEY}`,
+    `https://financialmodelingprep.com/api/v3/earning_calendar?symbol=${ticker}&apikey=${API_KEY}`,
+  ];
 
-  if (!response.ok) {
-    if (response.status === 429) markExhausted('fmp');
-    dbg('[fmp] HTTP error:', response.status);
-    return null;
+  for (const url of endpoints) {
+    const response = await fetch(url);
+    recordCall('fmp');
+
+    if (!response.ok) {
+      if (response.status === 429) markExhausted('fmp');
+      if (response.status === 403) {
+        dbg('[fmp] 403 on endpoint, trying next:', url.includes('stable') ? 'stable' : 'v3');
+        continue; // try the next endpoint
+      }
+      dbg('[fmp] HTTP error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Both endpoints return an array; stable may wrap in { data: [] }
+    const rows = Array.isArray(data) ? data
+      : Array.isArray(data?.data) ? data.data
+      : null;
+
+    if (!rows || rows.length === 0) {
+      dbg('[fmp] Empty response from endpoint');
+      continue;
+    }
+
+    // Filter to upcoming dates only, sort ascending, take first
+    const today = todayUTC();
+    const upcoming = rows
+      .filter(e => e.date && e.date >= sevenDaysAgoUTC())
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (upcoming.length === 0) {
+      dbg('[fmp] No upcoming dates in response');
+      continue;
+    }
+
+    const earnings = upcoming[0];
+    dbg('[fmp] Found date:', earnings.date, 'from endpoint:', url.includes('stable') ? 'stable' : 'v3');
+
+    return {
+      symbol: earnings.symbol || ticker,
+      name: ticker,
+      date: earnings.date,
+      time: normalizeTime(earnings.time),
+      epsEstimated: earnings.epsEstimated ?? earnings.revenueEstimated ?? null,
+      source: 'FMP',
+    };
   }
 
-  const data = await response.json();
-  if (!Array.isArray(data) || data.length === 0) return null;
-
-  const earnings = data[0];
-
-  // Skip stale dates (more than 7 days in the past)
-  if (earnings.date < sevenDaysAgoUTC()) {
-    dbg('[fmp] Date is stale:', earnings.date);
-    return null;
-  }
-
-  return {
-    symbol: earnings.symbol,
-    name: ticker,
-    date: earnings.date,
-    time: normalizeTime(earnings.time),
-    epsEstimated: earnings.epsEstimated ?? null,
-    source: 'FMP',
-  };
+  return null;
 }
 
 // ---------------------------------------------------------------------------
-// Source: Yahoo Finance (unofficial)
-// No key required. Endpoint is undocumented and can break without warning.
-// Does not expose BMO/AMC timing. Good broad coverage.
+// Source: Yahoo Finance
+// No key required. Yahoo now requires a crumb+cookie pair for their API.
+// We fetch the crumb first, then use it for the quoteSummary call.
+// This is the current working approach as of 2026.
 // ---------------------------------------------------------------------------
+
+// Cached crumb so we don't fetch it on every request
+let _yahooCrumb = null;
+let _yahooCookie = null;
+
+async function getYahooCrumb() {
+  if (_yahooCrumb && _yahooCookie) return { crumb: _yahooCrumb, cookie: _yahooCookie };
+
+  // Step 1: get a session cookie from Yahoo Finance
+  const cookieRes = await fetch('https://fc.yahoo.com', {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+    redirect: 'follow',
+  });
+
+  const setCookie = cookieRes.headers.get('set-cookie') || '';
+  // Extract the A3 or A1 cookie value that Yahoo needs
+  const cookieMatch = setCookie.match(/A[13]=[^;]+/);
+  _yahooCookie = cookieMatch ? cookieMatch[0] : 'A1=d=AQABBBBBB';
+
+  // Step 2: fetch the crumb using that cookie
+  const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      'Cookie': _yahooCookie,
+    },
+  });
+
+  if (!crumbRes.ok) {
+    dbg('[yahoo] Crumb fetch failed:', crumbRes.status);
+    return null;
+  }
+
+  _yahooCrumb = await crumbRes.text();
+  dbg('[yahoo] Got crumb:', _yahooCrumb?.substring(0, 8) + '...');
+  return { crumb: _yahooCrumb, cookie: _yahooCookie };
+}
+
 async function fetchFromYahooFinance(ticker) {
   if (isExhausted('yahoo')) { dbg('[yahoo] Self-throttle limit reached'); return null; }
 
-  const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=calendarEvents`;
   dbg('[yahoo] Fetching:', ticker);
 
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; earnings-calendar/2.0)',
-      'Accept': 'application/json',
+  try {
+    const auth = await getYahooCrumb();
+    if (!auth) {
+      dbg('[yahoo] Could not get crumb, skipping');
+      return null;
     }
-  });
-  recordCall('yahoo');
 
-  if (!response.ok) {
-    dbg('[yahoo] HTTP error:', response.status);
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=calendarEvents&crumb=${encodeURIComponent(auth.crumb)}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Cookie': auth.cookie,
+        'Accept': 'application/json',
+      },
+    });
+    recordCall('yahoo');
+
+    if (!response.ok) {
+      // If 401, clear the cached crumb so next call re-fetches it
+      if (response.status === 401 || response.status === 403) {
+        _yahooCrumb = null;
+        _yahooCookie = null;
+      }
+      dbg('[yahoo] HTTP error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const earnings = data?.quoteSummary?.result?.[0]?.calendarEvents?.earnings;
+    if (!earnings?.earningsDate?.[0]) {
+      dbg('[yahoo] No earningsDate in response');
+      return null;
+    }
+
+    const timestamp = earnings.earningsDate[0].raw;
+    const dateStr = new Date(timestamp * 1000).toISOString().split('T')[0];
+
+    if (dateStr < sevenDaysAgoUTC()) {
+      dbg('[yahoo] Date is stale:', dateStr);
+      return null;
+    }
+
+    return {
+      symbol: ticker,
+      name: ticker,
+      date: dateStr,
+      time: 'TBD',
+      epsEstimated: earnings.earningsAverage?.raw ?? null,
+      source: 'Yahoo',
+    };
+
+  } catch (err) {
+    // Clear crumb cache on any error so next request starts fresh
+    _yahooCrumb = null;
+    _yahooCookie = null;
+    dbg('[yahoo] Error:', err.message);
     return null;
   }
-
-  const data = await response.json();
-  const earnings = data?.quoteSummary?.result?.[0]?.calendarEvents?.earnings;
-  if (!earnings?.earningsDate?.[0]) return null;
-
-  // Yahoo returns a timestamp range — use the first (earliest) value
-  const timestamp = earnings.earningsDate[0].raw;
-  const dateStr = new Date(timestamp * 1000).toISOString().split('T')[0];
-
-  if (dateStr < sevenDaysAgoUTC()) {
-    dbg('[yahoo] Date is stale:', dateStr);
-    return null;
-  }
-
-  return {
-    symbol: ticker,
-    name: ticker,
-    date: dateStr,
-    time: 'TBD',
-    epsEstimated: earnings.earningsAverage?.raw ?? null,
-    source: 'Yahoo',
-  };
 }
-
 // ---------------------------------------------------------------------------
 // Source: Nasdaq Data Link (formerly Quandl)
 // Limit: 50 calls/day on free tier
