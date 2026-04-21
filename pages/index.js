@@ -483,6 +483,106 @@ function RelatedTickers({ relationships, userVotes, loading, onAddTicker, onVote
   );
 }
 
+// ─── SentimentSummary ─────────────────────────────────────────────────────────
+
+function SentimentSummary({ articles }) {
+  if (!articles || articles.length < 2) return null;
+
+  const counts = { positive: 0, neutral: 0, negative: 0 };
+  let totalScore = 0;
+  let scoredCount = 0;
+
+  articles.forEach(a => {
+    const s = a.sentiment || 'neutral';
+    if (counts[s] !== undefined) counts[s]++;
+    if (typeof a.sentimentScore === 'number') {
+      totalScore += a.sentimentScore;
+      scoredCount++;
+    }
+  });
+
+  const avgScore  = scoredCount > 0 ? totalScore / scoredCount : 0;
+  const total     = articles.length;
+  const pctPos    = Math.round((counts.positive / total) * 100);
+  const pctNeu    = Math.round((counts.neutral  / total) * 100);
+  const pctNeg    = Math.round((counts.negative / total) * 100);
+
+  // Gauge: map avgScore (-1 to 1) to a 0-100 position
+  const gaugePos  = Math.round(((avgScore + 1) / 2) * 100);
+
+  let overallLabel, overallColor;
+  if (avgScore >  0.2) { overallLabel = 'Bullish';  overallColor = '#10b981'; }
+  else if (avgScore < -0.2) { overallLabel = 'Bearish';  overallColor = '#ef4444'; }
+  else                      { overallLabel = 'Neutral';  overallColor = '#94a3b8'; }
+
+  return (
+    <div className="sentiment-summary">
+      <div className="sentiment-summary-header">
+        <span className="sentiment-summary-label">News Sentiment</span>
+        <span className="sentiment-overall-badge" style={{ color: overallColor, borderColor: overallColor }}>
+          {overallLabel}
+        </span>
+      </div>
+
+      {/* Gauge bar */}
+      <div className="sentiment-gauge-wrap">
+        <span className="sentiment-gauge-end bear">Bearish</span>
+        <div className="sentiment-gauge-track">
+          {/* Coloured fill from center */}
+          <div
+            className="sentiment-gauge-fill"
+            style={{
+              left:       avgScore >= 0 ? '50%' : `${gaugePos}%`,
+              width:      `${Math.abs(avgScore) * 50}%`,
+              background: overallColor,
+            }}
+          />
+          {/* Center line */}
+          <div className="sentiment-gauge-center" />
+          {/* Needle */}
+          <div className="sentiment-gauge-needle" style={{ left: `${gaugePos}%` }} />
+        </div>
+        <span className="sentiment-gauge-end bull">Bullish</span>
+      </div>
+
+      {/* Article breakdown */}
+      <div className="sentiment-breakdown">
+        {/* Stacked bar */}
+        <div className="sentiment-bar-wrap">
+          {pctPos > 0 && (
+            <div className="sentiment-bar-seg pos" style={{ width: `${pctPos}%` }} title={`${counts.positive} positive`} />
+          )}
+          {pctNeu > 0 && (
+            <div className="sentiment-bar-seg neu" style={{ width: `${pctNeu}%` }} title={`${counts.neutral} neutral`} />
+          )}
+          {pctNeg > 0 && (
+            <div className="sentiment-bar-seg neg" style={{ width: `${pctNeg}%` }} title={`${counts.negative} negative`} />
+          )}
+        </div>
+
+        {/* Legend */}
+        <div className="sentiment-legend">
+          <span className="sentiment-legend-item pos">
+            <span className="sentiment-legend-dot" />
+            {counts.positive} positive
+          </span>
+          <span className="sentiment-legend-item neu">
+            <span className="sentiment-legend-dot" />
+            {counts.neutral} neutral
+          </span>
+          <span className="sentiment-legend-item neg">
+            <span className="sentiment-legend-dot" />
+            {counts.negative} negative
+          </span>
+          <span className="sentiment-legend-total">
+            {total} articles
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -1049,7 +1149,9 @@ export default function Home() {
               ) : newsState.articles.length === 0 ? (
                 <div className="modal-empty">No recent news found for {newsState.ticker}.</div>
               ) : (
-                newsState.articles.map((item, i) => (
+                <>
+                  <SentimentSummary articles={newsState.articles} />
+                  {newsState.articles.map((item, i) => (
                   <div key={i} className="news-card">
                     <div className="news-card-meta">
                       <span className="news-source">{item.source}</span>
@@ -1065,7 +1167,8 @@ export default function Home() {
                       <p className="news-summary">{item.summary}</p>
                     )}
                   </div>
-                ))
+                  ))}
+                </>
               )}
             </div>
           </div>

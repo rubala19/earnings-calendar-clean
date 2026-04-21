@@ -31,7 +31,7 @@ async function seedFromLLM(symbol) {
   }
 
   dbg('[relationships/llm] Starting LLM call for:', symbol);
-  dbg('[relationships/llm] Using model: claude-sonnet-4-20250514');
+  dbg('[relationships/llm] Using model: claude-sonnet-4-5');
 
   const prompt = `You are a financial analyst. For the stock ticker ${symbol}, identify related publicly traded companies by relationship type.
 
@@ -74,7 +74,7 @@ Rules:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
+        model:      'claude-sonnet-4-5',
         max_tokens: 1024,
         messages:   [{ role: 'user', content: prompt }],
       }),
