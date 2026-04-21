@@ -70,6 +70,10 @@ alter table public.users enable row level security;
 alter table public.earnings_events enable row level security;
 
 -- Users can only see and edit their own user record
+-- Drop policies if they exist (makes this script idempotent / re-runnable)
+drop policy if exists "users_own_row" on public.users;
+drop policy if exists "events_own_rows" on public.earnings_events;
+
 create policy "users_own_row" on public.users
   for all
   using (id = current_setting('app.current_user_id', true));
@@ -90,10 +94,12 @@ begin
 end;
 $$;
 
+drop trigger if exists set_users_updated_at on public.users;
 create trigger set_users_updated_at
   before update on public.users
   for each row execute function public.set_updated_at();
 
+drop trigger if exists set_events_updated_at on public.earnings_events;
 create trigger set_events_updated_at
   before update on public.earnings_events
   for each row execute function public.set_updated_at();

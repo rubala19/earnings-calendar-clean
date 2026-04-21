@@ -36,10 +36,14 @@ create index if not exists idx_ticker_rel_symbol_rel
 -- writes happen only via the service role key from API routes.
 alter table public.ticker_relationships enable row level security;
 
+-- Drop policies if they exist (makes this script idempotent / re-runnable)
+drop policy if exists "ticker_relationships_read_all" on public.ticker_relationships;
+
 create policy "ticker_relationships_read_all" on public.ticker_relationships
   for select using (true);
 
 -- updated_at trigger
+drop trigger if exists set_ticker_rel_refreshed_at on public.ticker_relationships;
 create trigger set_ticker_rel_refreshed_at
   before update on public.ticker_relationships
   for each row execute function public.set_updated_at();

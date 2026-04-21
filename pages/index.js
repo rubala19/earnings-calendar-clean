@@ -1007,7 +1007,7 @@ export default function Home() {
             {newsState.event && (
               <div className="news-event-strip">
                 <span className="strip-date">
-                  📅 {new Date(newsState.event.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  📅 {newsState.event.date ? new Date(newsState.event.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Date TBD'}
                 </span>
                 {newsState.event.time && newsState.event.time !== 'TBD' && (
                   <span className={`time-badge ${(TIME_META[newsState.event.time] || TIME_META.TBD).cls}`}>
@@ -1056,7 +1056,7 @@ export default function Home() {
                       <span className="sentiment-pill" data-sentiment={item.sentiment}>
                         {item.sentiment === 'positive' ? '↑' : item.sentiment === 'negative' ? '↓' : '–'} {item.sentiment}
                       </span>
-                      <span className="news-date">{new Date(item.publishedAt).toLocaleDateString()}</span>
+                      <span className="news-date">{item.publishedAt && !isNaN(new Date(item.publishedAt)) ? new Date(item.publishedAt).toLocaleDateString() : ''}</span>
                     </div>
                     <a href={item.url} target="_blank" rel="noopener noreferrer" className="news-headline">
                       {item.headline}

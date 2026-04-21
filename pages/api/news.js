@@ -4,6 +4,25 @@ import { authOptions } from "./auth/[...nextauth]";
 const DEBUG = (process.env.DEBUG_LOGS === 'true');
 function dbg(...args) { if (DEBUG) console.log(...args); }
 
+// Normalize various date formats to ISO string
+// Handles: ISO strings, Alpha Vantage format (20260420T143000), Unix timestamps
+function normalizeDate(raw) {
+  if (!raw) return null;
+  // Alpha Vantage: 20260420T143000
+  if (typeof raw === 'string' && /^\d{8}T\d{6}$/.test(raw)) {
+    const d = raw.replace(
+      /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/,
+      '$1-$2-$3T$4:$5:$6Z'
+    );
+    return d;
+  }
+  // Unix timestamp (number)
+  if (typeof raw === 'number') return new Date(raw * 1000).toISOString();
+  // Already ISO or parseable string
+  const d = new Date(raw);
+  return isNaN(d) ? null : d.toISOString();
+}
+
 // FIX #5: Improved sentiment analysis.
 // - Removed neutral/ambiguous words like "revenue" and "up"/"down" that
 //   fire too broadly and skew scores regardless of actual sentiment context.
@@ -105,7 +124,7 @@ async function fetchFromAlphaVantage(ticker) {
           summary: item.summary,
           url: item.url,
           source: item.source,
-          publishedAt: item.time_published,
+          publishedAt: normalizeDate(item.time_published),
           sentiment,
           sentimentScore
         };
@@ -194,7 +213,7 @@ async function fetchFromFMP(ticker) {
           summary: item.text,
           url: item.url,
           source: item.site,
-          publishedAt: item.publishedDate,
+          publishedAt: normalizeDate(item.publishedDate),
           sentiment: analysis.sentiment,
           sentimentScore: analysis.score
         };

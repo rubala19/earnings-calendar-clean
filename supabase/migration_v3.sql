@@ -38,9 +38,19 @@ create index if not exists idx_subscriptions_status
 
 alter table public.subscriptions enable row level security;
 
+-- Drop policies if they exist (makes this script idempotent / re-runnable)
+drop policy if exists "subscriptions_service_role" on public.subscriptions;
+drop policy if exists "ticker_nodes_read_all" on public.ticker_nodes;
+drop policy if exists "ticker_nodes_service_write" on public.ticker_nodes;
+drop policy if exists "ticker_edges_read_active" on public.ticker_edges;
+drop policy if exists "ticker_edges_service_write" on public.ticker_edges;
+drop policy if exists "edge_votes_service_role" on public.ticker_edge_votes;
+drop policy if exists "edge_audit_service_role" on public.ticker_edge_audit;
+
 create policy "subscriptions_service_role" on public.subscriptions
   for all using (true);
 
+drop trigger if exists set_subscriptions_updated_at on public.subscriptions;
 create trigger set_subscriptions_updated_at
   before update on public.subscriptions
   for each row execute function public.set_updated_at();
@@ -71,6 +81,7 @@ create policy "ticker_nodes_read_all" on public.ticker_nodes
 create policy "ticker_nodes_service_write" on public.ticker_nodes
   for all using (true);
 
+drop trigger if exists set_ticker_nodes_updated_at on public.ticker_nodes;
 create trigger set_ticker_nodes_updated_at
   before update on public.ticker_nodes
   for each row execute function public.set_updated_at();
@@ -119,6 +130,7 @@ create policy "ticker_edges_read_active" on public.ticker_edges
 create policy "ticker_edges_service_write" on public.ticker_edges
   for all using (true);
 
+drop trigger if exists set_ticker_edges_updated_at on public.ticker_edges;
 create trigger set_ticker_edges_updated_at
   before update on public.ticker_edges
   for each row execute function public.set_updated_at();
@@ -150,6 +162,7 @@ alter table public.ticker_edge_votes enable row level security;
 create policy "edge_votes_service_role" on public.ticker_edge_votes
   for all using (true);
 
+drop trigger if exists set_edge_votes_updated_at on public.ticker_edge_votes;
 create trigger set_edge_votes_updated_at
   before update on public.ticker_edge_votes
   for each row execute function public.set_updated_at();

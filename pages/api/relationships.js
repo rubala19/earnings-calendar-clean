@@ -18,37 +18,7 @@ import {
 const DEBUG = process.env.DEBUG_LOGS === 'true';
 function dbg(...args) { if (DEBUG) console.log(...args); }
 
-// ---------------------------------------------------------------------------
-// Seeding: FMP peers
-// ---------------------------------------------------------------------------
-async function seedFromFMP(symbol) {
-  const API_KEY = process.env.FMP_API_KEY;
-  if (!API_KEY) return [];
 
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/api/v4/stock_peers?symbol=${symbol}&apikey=${API_KEY}`
-    );
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    const peers = data?.[0]?.peersList ?? [];
-
-    return peers
-      .filter(p => p !== symbol)
-      .slice(0, 10)
-      .map(p => ({
-        to_symbol:  p,
-        rel_type:   'peer',
-        reason:     'Same sector/industry peer (FMP)',
-        confidence: 0.75,
-        source:     'fmp',
-      }));
-  } catch (err) {
-    dbg('[relationships] FMP seed error:', err.message);
-    return [];
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Seeding: Claude LLM for upstream / downstream / adjacent
@@ -60,6 +30,9 @@ async function seedFromLLM(symbol) {
     return [];
   }
 
+  dbg('[relationships/llm] Starting LLM call for:', symbol);
+  dbg('[relationships/llm] Using model: claude-sonnet-4-20250514');
+
   const prompt = `You are a financial analyst. For the stock ticker ${symbol}, identify related publicly traded companies by relationship type.
 
 Return ONLY valid JSON with no markdown, no code fences, no explanation:
@@ -70,18 +43,27 @@ Return ONLY valid JSON with no markdown, no code fences, no explanation:
   "downstream": [
     { "ticker": "DELL", "name": "Dell Technologies", "reason": "Major customer purchases GPUs for AI server products" }
   ],
+  "peer": [
+    { "ticker": "AMD", "name": "Advanced Micro Devices", "reason": "Direct competitor in GPU and data center AI accelerator markets" }
+  ],
   "adjacent": [
     { "ticker": "TSM", "name": "Taiwan Semiconductor", "reason": "Primary manufacturing partner fabless relationship" }
   ]
 }
 
+Category definitions:
+- upstream: suppliers, raw material providers, equipment makers this company depends on
+- downstream: customers, distributors, end-users who buy from this company
+- peer: direct competitors selling similar products to the same customers
+- adjacent: partners, ecosystem companies, adjacent market players with indirect relationships
+
 Rules:
 - Only include companies with real US-listed ticker symbols (NYSE or NASDAQ)
 - 3 to 6 entries per category maximum
-- Reason must be one specific sentence explaining the relationship
+- Reason must be one specific sentence explaining the exact relationship
 - If a category has no meaningful entries return an empty array
 - Do not include the queried ticker itself
-- Focus on direct material business relationships only`;
+- A company should only appear in one category — pick the most accurate one`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -99,14 +81,27 @@ Rules:
     });
 
     if (!res.ok) {
-      dbg('[relationships] LLM error:', res.status);
+      const errBody = await res.text().catch(() => '');
+      dbg('[relationships/llm] HTTP error:', res.status, errBody.slice(0, 200));
       return [];
     }
 
     const data   = await res.json();
+    dbg('[relationships/llm] Raw response type:', data.type);
+    dbg('[relationships/llm] Stop reason:', data.stop_reason);
+    dbg('[relationships/llm] Usage:', JSON.stringify(data.usage));
     const text   = data.content?.[0]?.text ?? '';
+    dbg('[relationships/llm] Raw text length:', text.length);
+    dbg('[relationships/llm] Raw text preview:', text.slice(0, 300));
     const clean  = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (parseErr) {
+      dbg('[relationships/llm] JSON parse failed:', parseErr.message);
+      dbg('[relationships/llm] Clean text was:', clean.slice(0, 500));
+      return [];
+    }
 
     const rows = [];
     for (const [type, entries] of Object.entries(parsed)) {
@@ -123,11 +118,13 @@ Rules:
       }
     }
 
-    dbg(`[relationships] LLM seeded ${rows.length} rows for ${symbol}`);
+    dbg(`[relationships/llm] Seeded ${rows.length} rows for ${symbol}`);
+    rows.forEach(r => dbg(`  → ${r.rel_type}: ${r.to_symbol} — ${r.reason?.slice(0, 60)}`));
     return rows;
 
   } catch (err) {
-    dbg('[relationships] LLM seed error:', err.message);
+    dbg('[relationships/llm] Unexpected error:', err.message);
+    console.error('[relationships/llm] Stack:', err.stack);
     return [];
   }
 }
@@ -154,19 +151,7 @@ export default async function handler(req, res) {
 
   if (!exists) {
     dbg('[relationships] No edges found, seeding:', ticker);
-    const [fmpRows, llmRows] = await Promise.all([
-      seedFromFMP(ticker),
-      seedFromLLM(ticker),
-    ]);
-
-    const allRows = [...fmpRows, ...llmRows];
-    const seen    = new Set();
-    const deduped = allRows.filter(r => {
-      const key = `${r.rel_type}:${r.to_symbol}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    const deduped = await seedFromLLM(ticker);
 
     if (deduped.length > 0) {
       await upsertEdges(ticker, deduped);
