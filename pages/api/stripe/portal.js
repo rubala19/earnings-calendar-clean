@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   try {
     const portalSession = await stripe.billingPortal.sessions.create({
       customer:   sub.stripe_customer_id,
-      return_url: `${process.env.NEXTAUTH_URL}/`,
+      return_url: `${process.env.NEXTAUTH_URL}/app`,
     });
 
     return res.status(200).json({ url: portalSession.url });

@@ -17,7 +17,7 @@ export default function Subscribe() {
       const res  = await fetch('/api/stripe/checkout', { method: 'POST' });
       const data = await res.json();
       if (data.code === 'ALREADY_SUBSCRIBED') {
-        router.push('/');
+        router.push('/app');
         return;
       }
       if (!res.ok) { setError(data.error || 'Something went wrong'); return; }
@@ -34,8 +34,8 @@ export default function Subscribe() {
       <div className="subscribe-card">
 
         <div className="subscribe-brand">
-          <span className="brand-mark">EC</span>
-          <span className="brand-name">Earnings Calendar</span>
+          <span className="brand-mark">WF</span>
+          <span className="brand-name">Wofinn</span>
         </div>
 
         {canceled && (
@@ -105,7 +105,7 @@ export default function Subscribe() {
           Cancel anytime. No contracts. Billed monthly via Stripe.
         </p>
 
-        <button className="subscribe-back" onClick={() => router.push('/')}>
+        <button className="subscribe-back" onClick={() => router.push('/app')}>
           ← Back to calendar
         </button>
       </div>

@@ -11,8 +11,8 @@ export default function SignIn({ providers }) {
     <div className="signin-container">
       <div className="signin-card">
         <div className="signin-header">
-          <h1>📊 Earnings Calendar</h1>
-          <p>Sign in to track your earnings events</p>
+          <h1>Wofinn</h1>
+          <p>Your personal financial intelligence agent</p>
         </div>
 
         {error && (
@@ -23,14 +23,14 @@ export default function SignIn({ providers }) {
 
         {!providers || Object.keys(providers).length === 0 ? (
           <div className="error-message">
-            No authentication providers configured. Please set up OAuth credentials.
+            Authentication not configured. Please set up OAuth credentials.
           </div>
         ) : (
           <div className="signin-providers">
             {Object.values(providers).map((provider) => (
               <button
                 key={provider.name}
-                onClick={() => signIn(provider.id, { callbackUrl: '/' })}
+                onClick={() => signIn(provider.id, { callbackUrl: '/app' })}
                 className={`provider-btn provider-${provider.id.toLowerCase()}`}
               >
                 {provider.id === 'google' && (

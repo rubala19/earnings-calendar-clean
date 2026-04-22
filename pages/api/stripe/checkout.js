@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         price:    process.env.STRIPE_PRICE_ID,
         quantity: 1,
       }],
-      success_url: `${process.env.NEXTAUTH_URL}/?subscribed=1`,
+      success_url: `${process.env.NEXTAUTH_URL}/app?subscribed=1`,
       cancel_url:  `${process.env.NEXTAUTH_URL}/subscribe?canceled=1`,
       subscription_data: {
         metadata: { userId },

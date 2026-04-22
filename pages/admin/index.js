@@ -30,7 +30,7 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const res = await fetch('/api/relationships/admin');
-      if (res.status === 403) { router.push('/'); return; }
+      if (res.status === 403) { router.push('/app'); return; }
       const data = await res.json();
       setQueue(Array.isArray(data) ? data : []);
     } catch {
@@ -82,13 +82,13 @@ export default function AdminPage() {
     <div className="admin-page">
       <div className="admin-header">
         <div className="admin-brand">
-          <span className="brand-mark">EC</span>
+          <span className="brand-mark">WF</span>
           <h1>Relationship Graph — Admin</h1>
         </div>
         <div className="admin-header-right">
           <span className="admin-count">{queue.length} items in queue</span>
           <button className="btn-neutral" onClick={loadQueue}>↻ Refresh</button>
-          <button className="btn-neutral" onClick={() => router.push('/')}>← Calendar</button>
+          <button className="btn-neutral" onClick={() => router.push('/app')}>← Calendar</button>
         </div>
       </div>
 

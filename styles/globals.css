@@ -2112,3 +2112,247 @@ img { display: block; }
   font-size: 0.72rem;
   color: var(--text-3);
 }
+
+/* =============================================================================
+   Positions — v4.1.0
+   ============================================================================= */
+
+/* EventRow wrapper — needed for inline form */
+.event-row-wrap {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: background 0.15s;
+}
+.event-row-wrap.editing {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+/* Position chip on event row */
+.pos-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pos-chip:hover { border-color: #667eea; color: #667eea; }
+.pos-chip-qty  { color: var(--text-1); font-weight: 600; }
+.pos-chip-sep  { color: var(--text-3); }
+.pos-chip-cost { color: var(--text-2); }
+
+.pos-add-btn {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.pos-add-btn:hover { border-color: #667eea; color: #667eea; border-style: solid; }
+
+/* Inline position form */
+.pos-form {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pos-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pos-form-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pos-form-label {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pos-form-input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.pos-form-input:focus { outline: none; border-color: #667eea; }
+
+.pos-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pos-form-save {
+  padding: 5px 14px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pos-form-save:hover:not(:disabled) { opacity: 0.85; }
+.pos-form-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.pos-form-delete {
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-form-delete:hover { background: #ef444422; }
+
+.pos-form-cancel {
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-form-cancel:hover { border-color: var(--text-2); color: var(--text-1); }
+
+/* Position card in modal (premium) */
+.pos-card {
+  margin: 0 24px 16px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pos-card-empty {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+.pos-card-empty-label {
+  font-size: 0.82rem;
+  color: var(--text-3);
+}
+
+.pos-card-add-btn {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-card-add-btn:hover { border-color: #667eea; color: #667eea; border-style: solid; }
+
+.pos-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pos-card-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.pos-card-edit-btn {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-card-edit-btn:hover { border-color: #667eea; color: #667eea; }
+
+/* Metrics grid */
+.pos-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.pos-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pos-metric-label {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pos-metric-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+}
+
+.pos-metric-pnl .pos-metric-value {
+  font-size: 1rem;
+}
+
+.pos-pnl-pct {
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.pos-metric-note {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  grid-column: 1 / -1;
+  font-style: italic;
+}
